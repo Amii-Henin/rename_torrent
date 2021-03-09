@@ -1,2 +1,9 @@
 # rename_torrent
+
+
 rename the default torrent like 'DDB5A060F8606579194566A3967A428EG1A361BA.torrent' to 'filename__DDB5A060F8606579194566A3967A428EG1A361BA.torrent'
+
+
+把诸如“DDB5A060F8606579194566A3967A428EG1A361BA.torrent”的种子重命名为“包含的文件名__DDB5A060F8606579194566A3967A428EG1A361BA.torrent”
+
+运行时会自动生成日志文件，遇到有些种子文件名无法识别的需要自行更改，具体情况请查看日志。
