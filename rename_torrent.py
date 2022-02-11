@@ -2,101 +2,101 @@
 # -*- coding:utf-8 -*-
 
 # 作者：AMII
-# 时间：20210310
-# 更新内容：完善日志存储、已改种子避免重新命名导致出错
+# 时间：20220211
+# 更新内容：无法识别种子名也补上哈希值
 
-import datetime
 import os
 import re
 import time
+import base64
+import magneturi
 from bcoding import bdecode
 
 
-alldirs = []
-logpath = 'D:\Sources\PY\\rename_torrent\log\\'
-logfilename = 'rename_torrent_log.json'
+logfile = r'D:\Sources\PY\rename_torrent\log\rename_torrent_log.json'
 now = time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))
 
-def main():
-    alldirs.append(rootpath)
-    get_dirs(rootpath)
-    get_dirs_check(alldirs)
-    save_log(logpath + logfilename,now + ':{\n')
-    for path in alldirs:
-        rename(path)
-    save_log(logpath + logfilename,'}\n')
 
-def rename(path):
-    files,nfiles,path_files = get_list(path)
-    for x in range(len(files)):
-        fname = ''
-        save_log(logpath + logfilename,'    ["' + path_files[x] + '"')
-        if (len(nfiles[x]) != 40):
-            save_log(logpath + logfilename,',skip],\n')
-            continue
+def start(path):
+    file_list,path_list = get_list(path)        # 获取文件、目录列表
+    for f in file_list:                         # 循环文件列表
+        rename(f,path)
+    if len(path_list):                          # 如本级有目录则循环递归调用
+        for p in path_list:
+            start(p)
+
+
+def rename(file,path):
+    new_name = ''
+    chk = re.search('_\w{32}_',file)
+    if chk:
+        save_log(logfile,'"' +os.path.join(path,file) + ',skip"')
+        return True
+    fname,b32hash,b16hash = get_torrent_name(os.path.join(path,file))       # 获取种子名及哈希值
+    nfile = file.replace('.torrent','')
+    nfile_chk = re.search('__\w{40}',nfile)             # 查找旧版程序命名
+    if nfile_chk:
+        nfile = nfile.replace(nfile_chk.group(),'')     # 移除旧版程序命名
+    if nfile == str(fname) or nfile == b32hash or nfile == b16hash:         # 判断原文件名是否重复
+        new_name = str(fname) + '_' + b32hash + '_' + b16hash + '.torrent'
+    else:
+        new_name = nfile + '_' + str(fname) + '_' + b32hash + '_' + b16hash + '.torrent'
+        for rep in '\\/<>:"*?|':        # 替换特殊字符
+            new_name = new_name.replace(rep,'_')
+        if len(new_name) > 255:
+            new_name = str(fname) + '_' + b32hash + '_' + b16hash + '.torrent'
+        for rep in '\\/<>:"*?|':        # 替换特殊字符
+            new_name = new_name.replace(rep,'_')
+    try:
+        if os.path.exists(path + '\\' + new_name):      # 如已存在则删除原种子
+            save_log(logfile,'"' + os.path.join(path,file) + ',exists"')
+            os.remove(os.path.join(path,file))
+            return True
+        os.rename(os.path.join(path,file),os.path.join(path,new_name))
+    except:
+        save_log(logfile,'【重命名errrrrrrrrrrrrrrrrr】,' + os.path.join(path,file))
+        print ('\n【【【Error File】】】',os.path.join(path,file),'\n')    #运行出错，保留日志
+        return False
+    save_log(logfile,'"' + os.path.join(path,file) + ',' + new_name + ',Done~~"')
+    print ('DONE ', new_name)
+
+def get_torrent_name(path_file):
+    with open(path_file,'rb') as f:
         try:
-            with open(path_files[x],'rb') as f:
-                # ff = f.read()
-                fname = bdecode(f.read())['info']['name']
-                if type(fname) == bytes :
-                    save_log(logpath + 'rename_torrent_errlog_' + now + '.txt',path_files[x] + ',【需要手动调整】\n')
-                    save_log(logpath + logfilename,',【读取失败，需手动调errrrrrrrrrrrrrrrrr】],\n')
-                    print ('\n【【【Error File】】】',path_files[x],'\n')    #运行出错，保留日志
-                    continue
-                # print (fname)
+            metadata = magneturi.from_torrent_file(path_file)
+            b32hash = re.search('(?<=btih:)\w{32}',metadata).group()
+            b16hash = base64.b16encode(base64.b32decode(b32hash)).decode('utf-8')
+            fname = bdecode(f.read())['info']['name']
+            if type(fname) == bytes :
+                save_log(logfile, '【读取失败，需手动调errrrrrrrrrrrrrrrrr】,' + path_file)
+                print ('\n【【【Error File】】】',path_file,'\n')    #运行出错，保留日志
+                return '',b32hash,b16hash
         except:
-            save_log(logpath + 'rename_torrent_errlog_' + now + '.txt',path_files[x] + '\n')
-            save_log(logpath + logfilename,',【errrrrrrrrrrrrrrrrr】],\n')
-            print ('\n【【【Error File】】】',path_files[x],'\n')    #运行出错，保留日志
-            continue
-        new_name = str(fname) + '__' + files[x]
-        try:
-            if os.path.exists(path + '\\' + new_name):
-                save_log(logpath + logfilename,',exists],\n')
-                continue
-            os.rename(path_files[x],path + '\\' + new_name)
-        except:
-            save_log(logpath + 'rename_torrent_errlog_' + now + '.txt',path_files[x] + '\n')
-            save_log(logpath + logfilename,',【重命名errrrrrrrrrrrrrrrrr】],\n')
-            print ('\n【【【Error File】】】',path_files[x],'\n')    #运行出错，保留日志
-            continue
-        save_log(logpath + logfilename,'"' + path + '\\' + new_name + '",Done~~],\n')
-        print (new_name,'  OK~~')
+            save_log(logfile, '【errrrrrrrrrrrrrrrrr】' + path_file)
+            print ('\n【【【Error File】】】',path_file,'\n')    #运行出错，保留日志
+        return fname,b32hash,b16hash
 
-def get_dirs(root_path):    #遍历目录
-    dirs = os.scandir(root_path)
-    # print (root_path)
-    for x in dirs:
-        if x.is_dir():
-            if x.name != '$RECYCLE.BIN' and x.name != 'System Volume Information':
-                alldirs.append(root_path + '\\' + x.name)
-                get_dirs(root_path + '\\' + x.name)
-
-def get_dirs_check(alldirs):
-    if re.search('\\\\\\\\',alldirs[-1]):
-        for x in range(len(alldirs)):
-            temp = alldirs[x].replace('\\\\','\\')
-            alldirs[x] = temp
-
-def get_list(path):     #获取并返回目录下种子文件等
-    all_files = os.listdir(path)
-    rule = r"\.torrent$"
-    path_file_list = []
+def get_list(path):
     file_list = []
-    nfile_list = []
-    for files in all_files:
-        if re.search(rule, files, re.IGNORECASE):
-            file_list.append(files)
-            nfile_list.append(os.path.splitext(files)[0])
-            path_file_list.append(path + '\\' + files)
-    return (file_list,nfile_list,path_file_list)
+    path_list = []
+    rule = r"\.(torrent)$"
+    lists = os.listdir(path)
+    for p in lists:
+        if re.search("\$RECYCLE\.BIN|System Volume Information|Recovery",p): continue   # 排除windows系统文件夹
+        if os.path.isdir(os.path.join(path,p)):
+            path_list.append(os.path.join(path,p))      # 追加文件夹
+            continue
+        if re.search(rule, p, re.IGNORECASE):
+            file_list.append(p)                         # 追加文件
+    return (file_list, path_list)
 
 def save_log(logname,mess):     #写入日志
     with open (logname,'a+',encoding='utf-8') as f:
-        f.write(mess)
+        f.write(mess + '\n')
 
 if __name__ == '__main__':
-    if not os.path.exists(logpath):
-        os.makedirs(logpath)
-    rootpath = input('请输入文件夹地址：')
-    main()
+    if not os.path.exists(os.path.split(logfile)[0]):
+        os.makedirs(os.path.split(logfile)[0])
+    rootpath = input('请输入文件夹地址：') or "D:\Downloads\\temp"
+    save_log(logfile,'\t' + now + ' ' + rootpath + ':')
+    start(rootpath)
