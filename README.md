@@ -1,9 +1,8 @@
-# rename_torrent
+# 重命名种子
 
+把诸如 “FA49363E7CC79E58EA7E5FC2A4F0DFDB5FF8821A.torrent” 的种子重命名为 “种子内文件名_7JETMPT4Y6PFR2T6L7BKJ4G73NP7RAQ2_FA49363E7CC79E58EA7E5FC2A4F0DFDB5FF8821A.torrent”
 
-rename the default torrent like 'DDB5A060F8606579194566A3967A428EG1A361BA.torrent' to 'filename__DDB5A060F8606579194566A3967A428EG1A361BA.torrent'
+文件名中32位、40位字母数字均为种子的【特征码】，特征码可被bt软件识别（如 Bitcomet 等），运行时会自动生成日志文件，遇到有些种子文件名无法识别的需要自行更改，具体情况请查看日志。
 
+rename the default torrent like 'FA49363E7CC79E58EA7E5FC2A4F0DFDB5FF8821A.torrent' to 'filename_7JETMPT4Y6PFR2T6L7BKJ4G73NP7RAQ2_FA49363E7CC79E58EA7E5FC2A4F0DFDB5FF8821A.torrent'
 
-把诸如“DDB5A060F8606579194566A3967A428EG1A361BA.torrent”的种子重命名为“包含的文件名__DDB5A060F8606579194566A3967A428EG1A361BA.torrent”
-
-运行时会自动生成日志文件，遇到有些种子文件名无法识别的需要自行更改，具体情况请查看日志。
